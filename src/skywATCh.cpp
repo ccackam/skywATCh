@@ -22,11 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "SDK/CHeaders/XPLM/XPLMDisplay.h"
-#include "SDK/CHeaders/XPLM/XPLMGraphics.h"
-#include "SDK/CHeaders/XPLM/XPLMMenus.h"
-#include "SDK/CHeaders/Widgets/XPWidgets.h"
-#include "SDK/CHeaders/Widgets/XPStandardWidgets.h"
+#include "XPLMDisplay.h"
+#include "XPLMGraphics.h"
+#include "XPLMMenus.h"
+#include "XPWidgets.h"
+#include "XPStandardWidgets.h"
 #include <string>
 #include <stdio.h>
 

@@ -19,7 +19,7 @@ find_library(XPWIDGETS_
 						 HINTS "include/SDK/Libraries/Mac/")
 
 add_library(skywATCh SHARED src/skywATCh.cpp)
-target_include_directories(skywATCh PRIVATE include)
+target_include_directories(skywATCh PRIVATE include include/SDK/CHeaders/XPLM include/SDK/CHeaders/Widgets)
 target_link_libraries(skywATCh
     ${COREFOUNDATION}
 		${OPENGL}
