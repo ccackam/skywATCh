@@ -66,8 +66,10 @@ XPLMMenuID 		menu_container;
 void 					menu_handler(void *, void *);
 
 // Widgets
-static XPWidgetID 			flight_plan_window;
-static XPWidgetID 			settings_window;
+static XPWidgetID 			flight_plan_window = NULL;
+static XPWidgetID 			settings_window = NULL;
+int 										window_callback(XPWidgetMessage inMessage,XPWidgetID inWidget,intptr_t inParam1,intptr_t inParam2);
+
 // </editor-fold> --------------------------------------------------------------
 
 
@@ -91,12 +93,14 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char *	outDesc)
 	int flight_plan_index = XPLMAppendMenuItem(menu_container, "File Flight Plan", (void *)"File Flight Plan", 1);
 	int settings_index = XPLMAppendMenuItem(menu_container, "Settings", (void *)"Settings", 1);
 
+	// Confirm plugin loaded correctly
 	return (flight_plan_index>=0) && (settings_index>=0);
 }
 
 PLUGIN_API void	XPluginStop(void)
 {
 	XPLMDestroyMenu(menu_container);
+	XPDestroyWidget(flight_plan_window,1);
 }
 
 PLUGIN_API void XPluginDisable(void){}
@@ -112,12 +116,36 @@ void menu_handler(void * in_menu_ref, void * in_item_ref)
 	// Determin which menu item was selected.
 	if(!strcmp((const char *)in_item_ref, "File Flight Plan"))
 	{
+		// Get Window Bounds
+		int left, top, right, bottom, width, height;
+		XPLMGetScreenBoundsGlobal(&left, &top, &right, &bottom);
+		width = right - left;
+		height = top - bottom;
 
+		// Create window and set properties
+		flight_plan_window = XPCreateWidget(left+100,top-100,right-100,bottom+100,1,"File Flight Plan",1,0,xpWidgetClass_MainWindow);
+		XPSetWidgetProperty(flight_plan_window,xpProperty_MainWindowType,xpMainWindowStyle_MainWindow);
+		XPSetWidgetProperty(flight_plan_window,xpProperty_MainWindowHasCloseBoxes,1);
+		XPAddWidgetCallback(flight_plan_window,window_callback);
 	}
 	else if(!strcmp((const char *)in_item_ref, "Settings"))
 	{
 
 	}
+}
+
+int window_callback(XPWidgetMessage inMessage,XPWidgetID inWidget,intptr_t inParam1,intptr_t inParam2)
+{
+	int return_value = 0;
+
+	// For message command to close window
+	if(inMessage==xpMessage_CloseButtonPushed)
+	{
+		XPDestroyWidget(inWidget,1); // Close the window
+		return_value = 1; // Indicate message was processed
+	}
+
+	return return_value;
 }
 // </editor-fold> --------------------------------------------------------------
 
