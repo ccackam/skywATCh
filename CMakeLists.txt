@@ -18,7 +18,7 @@ find_library(XPWIDGETS_
 						 NAMES XPWidgets
 						 HINTS "include/SDK/Libraries/Mac/")
 
-add_library(skywATCh SHARED src/skywATCh.cpp)
+add_library(skywATCh SHARED src/skywATCh.cpp src/texture.cpp)
 target_include_directories(skywATCh PRIVATE include include/SDK/CHeaders/XPLM include/SDK/CHeaders/Widgets)
 target_link_libraries(skywATCh
     ${COREFOUNDATION}
