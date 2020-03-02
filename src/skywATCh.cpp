@@ -76,9 +76,33 @@ XPLMMenuID 		menu_container;
 void 					menu_handler(void *, void *);
 
 // Flight Plan Window
-XPLMWindowID 				flight_plan_window_ = NULL;
+XPLMWindowID 				flight_plan_window = NULL;
 void								draw_file_flight_plan_window(XPLMWindowID in_window_id, void * in_refcon);
 PPL::Texture* 			flight_plan_texture;
+XPWidgetID 					flight_plan_widgets[22];
+float 							flight_plan_widget_vertices[22][4] =  {{0.002632,0.790000,0.027193,0.820000}, // Box 1a
+																									 			   {0.002632,0.751667,0.027193,0.790000}, // Box 1b
+																												   {0.002632,0.715000,0.027193,0.751667}, // Box 1c
+																												   {0.077193,0.715000,0.221053,0.810000}, // Box 2
+																											     {0.221053,0.715000,0.376316,0.810000}, // Box 3
+																											     {0.376316,0.745000,0.476316,0.810000}, // Box 4
+																											     {0.476316,0.715000,0.674561,0.828333}, // Box 5
+																											     {0.674561,0.715000,0.780702,0.791667}, // Box 6a
+																											     {0.780702,0.715000,0.884211,0.791667}, // Box 6b
+																											     {0.884211,0.715000,0.998246,0.805000}, // Box 7
+																											     {0.002632,0.471667,0.998246,0.680000}, // Box 8
+																											     {0.002632,0.291667,0.210526,0.420000}, // Box 9
+																											     {0.210526,0.291667,0.304386,0.403333}, // Box 10a
+																											     {0.304386,0.291667,0.392105,0.403333}, // Box 10b
+																											     {0.392105,0.291667,0.998246,0.431667}, // Box 11
+																											     {0.002632,0.111667,0.088596,0.230000}, // Box 12a
+																											     {0.088596,0.111667,0.175439,0.230000}, // Box 12b
+																											     {0.175439,0.111667,0.392105,0.256667}, // Box 13
+																											     {0.392105,0.198333,0.888596,0.258333}, // Box 14
+																											     {0.888596,0.111667,0.998246,0.233333}, // Box 15
+																											     {0.002632,0.005000,0.243737,0.081667}, // Box 16
+																										 	     {0.392105,0.111667,0.888596,0.171667}};// Box 17
+
 
 // Settings Window
 static XPWidgetID 			settings_window = NULL;
@@ -100,48 +124,9 @@ void				dummy_key_handler(XPLMWindowID in_window_id, char key, XPLMKeyFlags flag
 // Utilities
 bool draw_bounding_box = 0;
 float indexes[4] = {0,0,0,0};
-XPLMCursorStatus	courser_box_maker(XPLMWindowID in_window_id, int x, int y, void * in_refcon)
-{
-	int left, top, right, bottom, width, height;
-	XPLMGetWindowGeometry(in_window_id,&left, &top, &right, &bottom);
-	left += content_inset;
-	top -= content_inset;
-	right -= content_inset;
-	bottom += content_inset;
-	width = right-left;
-	height = top-bottom;
-	if(draw_bounding_box)
-	{
-		indexes[2]=(float)(x-left)/(float)width;
-		indexes[3]=(float)(y-bottom)/(float)height;
-	}
-	return xplm_CursorDefault;
-}
-int					mouse_box_maker(XPLMWindowID in_window_id, int x, int y, int is_down, void * in_refcon)
-{
-	if(is_down=xplm_MouseDown)
-	{
-		int left, top, right, bottom, width, height;
-		XPLMGetWindowGeometry(in_window_id,&left, &top, &right, &bottom);
-		left += content_inset;
-		top -= content_inset;
-		right -= content_inset;
-		bottom += content_inset;
-		width = right-left;
-		height = top-bottom;
-		indexes[0+draw_bounding_box*2]=(float)(x-left)/(float)width;
-		indexes[1+draw_bounding_box*2]=(float)(y-bottom)/(float)height;
-		draw_bounding_box = !draw_bounding_box;
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-int loadDDS(const char * imagepath);
-
+// TODO: Switch Debouncing
+// TODO: Clean up texturing Code
+// TODO: make measuring box green
 
 // </editor-fold> --------------------------------------------------------------
 
@@ -175,7 +160,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char *	outDesc)
 PLUGIN_API void	XPluginStop(void)
 {
 	XPLMDestroyMenu(menu_container);
-	XPLMDestroyWindow(flight_plan_window_);
+	XPLMDestroyWindow(flight_plan_window);
 	flight_plan_texture->~Texture();
 }
 
@@ -192,33 +177,40 @@ void menu_handler(void * in_menu_ref, void * in_item_ref)
 	if(!strcmp((const char *)in_item_ref, "File Flight Plan"))
 	{
 		// Get general Parameters
-		int left, top, right, bottom;
+		int left, top, right, bottom, l, t, r, b, width, height;
 		XPLMGetScreenBoundsGlobal(&left, &top, &right, &bottom);
+		left += content_inset;
+		top -= content_inset;
+		right -= content_inset;
+		bottom += content_inset;
+		width = right-left;
+		height = top-bottom;
+
 
 		// Create Window
 		left += window_inset; top -= window_inset; right -= window_inset; bottom += window_inset;
-		XPLMCreateWindow_t params;
-		params.structSize = sizeof(params);
-		params.left = left;
-		params.top = top;
-		params.right = right;
-		params.bottom = bottom;
-		params.visible = 1;
-		params.drawWindowFunc = draw_file_flight_plan_window;
-		params.handleMouseClickFunc = mouse_box_maker;
-		params.handleRightClickFunc = dummy_mouse_handler;
-		params.handleMouseWheelFunc = dummy_wheel_handler;
-		params.handleKeyFunc = dummy_key_handler;
-		params.handleCursorFunc = courser_box_maker;
-		params.refcon = NULL;
-		params.layer = xplm_WindowLayerFloatingWindows;
-		params.decorateAsFloatingWindow = 1;
+		XPLMCreateWindow_t window_params;
+		window_params.structSize = sizeof(window_params);
+		window_params.left = left;
+		window_params.top = top;
+		window_params.right = right;
+		window_params.bottom = bottom;
+		window_params.visible = 1;
+		window_params.drawWindowFunc = draw_file_flight_plan_window;
+		window_params.handleMouseClickFunc = dummy_mouse_handler;
+		window_params.handleRightClickFunc = dummy_mouse_handler;
+		window_params.handleMouseWheelFunc = dummy_wheel_handler;
+		window_params.handleKeyFunc = dummy_key_handler;
+		window_params.handleCursorFunc = dummy_cursor_status_handler;
+		window_params.refcon = NULL;
+		window_params.layer = xplm_WindowLayerFloatingWindows;
+		window_params.decorateAsFloatingWindow = 1;
 
-		flight_plan_window_ = XPLMCreateWindowEx(&params);
-		XPLMSetWindowPositioningMode(flight_plan_window_, xplm_WindowPositionFree, -1);
-		XPLMSetWindowGravity(flight_plan_window_, 0, 1, 0, 1); // As the X-Plane window resizes, keep our size constant, and our left and top edges in the same place relative to the window's left/top
-		XPLMSetWindowResizingLimits(flight_plan_window_, 200, 200, 0, 0); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
-		XPLMSetWindowTitle(flight_plan_window_, "File Flight Plan");
+		flight_plan_window = XPLMCreateWindowEx(&window_params);
+		XPLMSetWindowPositioningMode(flight_plan_window, xplm_WindowPositionFree, -1);
+		XPLMSetWindowGravity(flight_plan_window, 0, 1, 0, 1); // As the X-Plane window resizes, keep our size constant, and our left and top edges in the same place relative to the window's left/top
+		XPLMSetWindowResizingLimits(flight_plan_window, 200, 200, 0, 0); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
+		XPLMSetWindowTitle(flight_plan_window, "File Flight Plan");
 	}
 }
 
@@ -234,7 +226,10 @@ void draw_file_flight_plan_window(XPLMWindowID in_window_id, void * in_refcon)
 	width = right-left;
 	height = top-bottom;
 
-	XPLMSetGraphicsState(0,1,0,0,1,0,0);
+	XPLMSetGraphicsState(0,1,0,0,1,1,0);
+	int blend_src, blend_dst;
+	glGetIntegerv(GL_BLEND_SRC, &blend_src);
+	glGetIntegerv(GL_BLEND_DST, &blend_dst);
 	glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 	glColor4f(1,1,1,1);
 
@@ -247,23 +242,6 @@ void draw_file_flight_plan_window(XPLMWindowID in_window_id, void * in_refcon)
 	  glTexCoord2f(0,0); glVertex2f(left, bottom);
 	}
   glEnd();
-	l = round(fmin(indexes[0],indexes[2])*width+left);
-	r = round(fmax(indexes[0],indexes[2])*width+left);
-	b = round(fmin(indexes[1],indexes[3])*height+bottom);
-	t = round(fmax(indexes[1],indexes[3])*height+bottom);
-	float green[4] = {0.0,1.0,0.0,1.0};
-	glColor4fv(green);
-	glBegin(GL_LINE_LOOP);
-		 glVertex2f(l, b);
-		 glVertex2f(r, b);
-		 glVertex2f(r, t);
-		 glVertex2f(l, t);
-	glEnd();
-
-	char scratch_buffer[150];
-	float col_white[] = {1.0, 1.0, 1.0};
-	sprintf(scratch_buffer, "Coordinates ( %f0.5 , %f0.5 ) ( %f0.5 , %f0.5 )", indexes[0], indexes[1], indexes[2], indexes[3]);
-	XPLMDrawString(col_white, left, bottom-10, scratch_buffer, NULL, xplmFont_Proportional);
 }
 // </editor-fold> --------------------------------------------------------------
 
@@ -271,3 +249,4 @@ void draw_file_flight_plan_window(XPLMWindowID in_window_id, void * in_refcon)
 
 // <editor-fold> Internal Functions --------------------------------------------
 // </editor-fold> --------------------------------------------------------------
+ // Box
